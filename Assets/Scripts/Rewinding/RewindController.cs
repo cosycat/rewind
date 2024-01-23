@@ -12,6 +12,15 @@ namespace Rewinding {
 
         private static List<RewindController> RewindControllers { get; } = new();
 
+        public static RewindController MainRewindController {
+            get {
+                if (RewindControllers.Count == 0) {
+                    RewindControllers.Add(new GameObject("RewindController").AddComponent<RewindController>());
+                }
+                return RewindControllers[0];
+            }
+        }
+
         public static void Register([NotNull] RewindableObject rewindableObject, int id = 0) {
             Debug.Assert(id >= 0, "id must be greater than or equal to 0");
             if (id >= RewindControllers.Count) {

@@ -136,6 +136,7 @@ GameObject:
   - component: {fileID: 342353788}
   - component: {fileID: 342353787}
   - component: {fileID: 342353791}
+  - component: {fileID: 342353793}
   - component: {fileID: 342353792}
   m_Layer: 0
   m_Name: Sphere
@@ -267,6 +268,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68f2b7fc484649eca6dec29ba0a123b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &342353793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 342353786}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a866d161e30452ea553849074a169d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &705507993
@@ -574,6 +587,7 @@ GameObject:
   - component: {fileID: 1455379498}
   - component: {fileID: 1455379497}
   - component: {fileID: 1455379501}
+  - component: {fileID: 1455379503}
   - component: {fileID: 1455379502}
   m_Layer: 0
   m_Name: Cube
@@ -662,7 +676,7 @@ Transform:
   m_GameObject: {fileID: 1455379496}
   serializedVersion: 2
   m_LocalRotation: {x: 0.46193978, y: 0.19134173, z: 0.19134173, w: 0.84462327}
-  m_LocalPosition: {x: 0, y: 1.22, z: 0}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -705,6 +719,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68f2b7fc484649eca6dec29ba0a123b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1455379503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1455379496}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a866d161e30452ea553849074a169d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
