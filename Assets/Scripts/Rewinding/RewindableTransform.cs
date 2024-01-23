@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace Rewinding {
     
-    [DisallowMultipleComponent]
     public class RewindableTransform : RewindableObject<(Vector3 pos, Quaternion rot)> {
         
         protected override (Vector3 pos, Quaternion rot) GetFrameInfo() {
@@ -29,6 +28,17 @@ namespace Rewinding {
         protected virtual void LateUpdate() {
             transform.hasChanged = false;
         }
+
+        public override void Pause() {
+            if (TryGetComponent<Rigidbody>(out var rigidbody)) {
+                rigidbody.isKinematic = true;
+            }
+        }
         
+        public override void Unpause() {
+            if (TryGetComponent<Rigidbody>(out var rigidbody)) {
+                rigidbody.isKinematic = false;
+            }
+        }
     }
 }

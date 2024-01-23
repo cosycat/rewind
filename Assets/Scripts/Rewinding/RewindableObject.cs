@@ -5,17 +5,21 @@ using UnityEngine;
 
 namespace Rewinding {
     public abstract class RewindableObject : MonoBehaviour {
-        
-        /// <summary>
-        /// Pauses recording the state of the object every frame.
-        /// </summary>
-        public abstract void PauseRecording();
-        
         /// <summary>
         /// Resumes recording the state of the object every frame.
         /// </summary>
-        public abstract void ResumeRecording();
+        public abstract void StartRecording();
+
+        /// <summary>
+        /// Pauses the game object in time.
+        /// </summary>
+        public abstract void Pause();
         
+        /// <summary>
+        /// Unpauses the game object in time.
+        /// </summary>
+        public abstract void Unpause();
+
         /// <summary>
         /// Restores the state of the object to the state it was in <paramref name="skipFrames"/> + 1 frames ago.
         ///
@@ -46,22 +50,38 @@ namespace Rewinding {
     
     public abstract class RewindableObject<T> : RewindableObject {
         
-        private bool _isRecording = true;
+        private RewindController _rewindController;
+        private RewindMode RewindMode => _rewindController.Mode;
+        private bool IsRecording => _rewindController.IsRecording;
+        private bool IsRewinding => _rewindController.IsRewinding;
+        private bool IsForwarding => _rewindController.IsForwarding;
+        private bool IsPaused => _rewindController.IsPaused;
+
         private readonly List<(int equalCount, T frame)> _previousFrames = new(); // TODO maybe use a class here to be able to increment equalCount without creating a new tuple
         private readonly List<(int equalCount, T frame)> _nextFrames = new();
 
-        private void Awake() {
-            RewindController.Register(this);
+        protected virtual void Awake() {
+            Debug.Log($"Awake {name} in RewindableObject abstract class");
+            Initialize();
+            Debug.Assert(_rewindController != null, $"RewindController was not initialized in {name}");
+        }
+
+        private void Start() {
+            Debug.Assert(_rewindController != null, $"RewindController was not initialized in Start of {name} {this.GetType().Name}");
+        }
+
+        protected virtual void Initialize() {
+            _rewindController = RewindController.Register(this);
         }
 
         protected void Update() {
-            if (_isRecording) {
+            if (IsRecording) {
                 SaveFrame();
             }
         }
 
         private void SaveFrame() {
-            Debug.Assert(_isRecording, "Can't save frame while not recording");
+            Debug.Assert(IsRecording, "Can't save frame while not recording");
             if (_previousFrames.Count > 0 && !IsChangedFromPreviousFrame()) {
                 _previousFrames[^1] = (_previousFrames[^1].equalCount + 1, _previousFrames[^1].frame);
                 return;
@@ -69,20 +89,13 @@ namespace Rewinding {
             _previousFrames.Add((1, GetFrameInfo()));
         }
         
-        protected virtual void StartRecording() {
-            _isRecording = true;
+        public override void StartRecording() {
+            Debug.Assert(IsRecording);
             if (_previousFrames.Count == 0) {
                 SaveFrame(); // TODO check if this is necessary
             }
             _nextFrames.Clear(); // we don't want to be able to redo frames after starting a new recording
-        }
-
-        public override void PauseRecording() {
-            _isRecording = false;
-        }
-
-        public override void ResumeRecording() {
-            StartRecording();
+            Unpause();
         }
         
         public override void ClearAllFrames() {
@@ -90,7 +103,8 @@ namespace Rewinding {
         }
 
         public override void RestorePreviousFrame(int skipFrames = 0) {
-            Debug.Assert(!_isRecording, "Can't restore frame while recording");
+            Debug.Log($"Restoring previous frame in {name}, skipFrames: {skipFrames}");
+            Debug.Assert(!IsRecording, "Can't restore frame while recording");
             Debug.Assert(_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) >= skipFrames, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
             Debug.Assert(skipFrames >= 0, "Can't skip negative number of frames");
             
@@ -103,14 +117,21 @@ namespace Rewinding {
                 (equalCount, frame) = _previousFrames[^1];
             }
             Debug.Assert(equalCount > skipFrames, "Sanity check failed, after the while loop, this should always be true");
-            _nextFrames.Add((skipFrames, frame));
-            _previousFrames[^1] = (equalCount - skipFrames, frame); // could be behind an if statement, but this might be more efficient, because of cpu branch prediction
+            
+            _nextFrames.Add((skipFrames + 1, frame));
+            if (equalCount - skipFrames - 1 > 0) {
+                _previousFrames[^1] = (equalCount - (skipFrames + 1), frame);
+            }
+            else {
+                _previousFrames.RemoveAt(_previousFrames.Count - 1);
+            }
             RestoreFrame(frame);
         }
         
         // TODO maybe combine this with RestorePreviousFrame
         public override void RestoreNextFrame(int skipFrames = 0) {
-            Debug.Assert(!_isRecording, "Can't restore frame while recording");
+            Debug.Log($"Restoring next frame in {name}, skipFrames: {skipFrames}");
+            Debug.Assert(!IsRecording, "Can't restore frame while recording");
             Debug.Assert(_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount) >= skipFrames, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
             Debug.Assert(skipFrames >= 0, "Can't skip negative number of frames");
             
