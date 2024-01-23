@@ -105,7 +105,7 @@ namespace Rewinding {
         public override void RestorePreviousFrame(int skipFrames = 0) {
             Debug.Log($"Restoring previous frame in {name}, skipFrames: {skipFrames}");
             Debug.Assert(!IsRecording, "Can't restore frame while recording");
-            Debug.Assert(_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) >= skipFrames, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
+            // Debug.Assert(_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) == _rewindController.FramesToRewindCount, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
             Debug.Assert(skipFrames >= 0, "Can't skip negative number of frames");
             
             var (equalCount, frame) = _previousFrames[^1];
@@ -132,7 +132,7 @@ namespace Rewinding {
         public override void RestoreNextFrame(int skipFrames = 0) {
             Debug.Log($"Restoring next frame in {name}, skipFrames: {skipFrames}");
             Debug.Assert(!IsRecording, "Can't restore frame while recording");
-            Debug.Assert(_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount) >= skipFrames, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
+            // Debug.Assert(_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount) == _rewindController.FramesToForwardCount, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
             Debug.Assert(skipFrames >= 0, "Can't skip negative number of frames");
             
             var (equalCount, frame) = _nextFrames[^1];
@@ -144,8 +144,14 @@ namespace Rewinding {
                 (equalCount, frame) = _nextFrames[^1];
             }
             Debug.Assert(equalCount > skipFrames, "Sanity check failed, after the while loop, this should always be true");
-            _previousFrames.Add((skipFrames, frame));
-            _nextFrames[^1] = (equalCount - skipFrames, frame); // could be behind an if statement, but this might be more efficient, because of cpu branch prediction
+            
+            _previousFrames.Add((skipFrames + 1, frame));
+            if (equalCount - skipFrames - 1 > 0) {
+                _nextFrames[^1] = (equalCount - (skipFrames + 1), frame);
+            }
+            else {
+                _nextFrames.RemoveAt(_nextFrames.Count - 1);
+            }
             RestoreFrame(frame);
         }
         

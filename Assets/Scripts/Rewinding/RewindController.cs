@@ -48,8 +48,8 @@ namespace Rewinding {
 
         private readonly List<RewindableObject> _rewindableObjects = new();
         private int _rewindSpeed = 1;
-        private int _framesToRewindCount = 0;
-        private int _framesToForwardCount = 0;
+        internal int FramesToRewindCount { get; private set; } = 0;
+        internal int FramesToForwardCount { get; private set; } = 0;
 
         public bool IsRecording => Mode == RewindMode.Record;
         public bool IsRewinding => Mode == RewindMode.Rewind;
@@ -74,7 +74,7 @@ namespace Rewinding {
                 case RewindMode.Pause:
                     break;
                 case RewindMode.Record:
-                    _framesToRewindCount++;
+                    FramesToRewindCount++;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -83,11 +83,11 @@ namespace Rewinding {
             return;
 
             void Rewind() {
-                _framesToForwardCount += _rewindSpeed;
-                _framesToRewindCount -= _rewindSpeed;
-                if (_framesToRewindCount <= 0) {
-                    _framesToForwardCount -= _framesToRewindCount;
-                    _framesToRewindCount = 0;
+                FramesToForwardCount += _rewindSpeed;
+                FramesToRewindCount -= _rewindSpeed;
+                if (FramesToRewindCount <= 0) {
+                    FramesToForwardCount -= FramesToRewindCount;
+                    FramesToRewindCount = 0;
                     Mode = RewindMode.Pause;
                     // TODO the last frame is not restored
                     return;
@@ -100,11 +100,11 @@ namespace Rewinding {
             }
 
             void Forward() {
-                _framesToForwardCount -= _rewindSpeed;
-                _framesToRewindCount += _rewindSpeed;
-                if (_framesToForwardCount <= 0) {
-                    _framesToRewindCount -= _framesToForwardCount;
-                    _framesToForwardCount = 0;
+                FramesToForwardCount -= _rewindSpeed;
+                FramesToRewindCount += _rewindSpeed;
+                if (FramesToForwardCount <= 0) {
+                    FramesToRewindCount -= FramesToForwardCount;
+                    FramesToForwardCount = 0;
                     Mode = RewindMode.Pause;
                     // TODO the last frame is not restored
                     return;
@@ -118,8 +118,8 @@ namespace Rewinding {
 
         public void RestartRecording() {
             Mode = RewindMode.Record;
-            _framesToRewindCount = 0;
-            _framesToForwardCount = 0;
+            FramesToRewindCount = 0;
+            FramesToForwardCount = 0;
             foreach (var rewindableObject in _rewindableObjects) {
                 rewindableObject.Pause();
                 rewindableObject.ClearAllFrames();
@@ -136,13 +136,13 @@ namespace Rewinding {
 
         public void StartRecording() {
             Mode = RewindMode.Record;
-            _framesToRewindCount = 0;
+            FramesToRewindCount = 0;
             foreach (var rewindableObject in _rewindableObjects) {
                 rewindableObject.StartRecording();
             }
         }
 
-        public void StartRewinding(int rewindSpeed = 1) {
+        public void StartRewinding(int rewindSpeed = 3) {
             if (IsRecording)
                 Pause();
             _rewindSpeed = rewindSpeed;

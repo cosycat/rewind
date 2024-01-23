@@ -30,15 +30,15 @@ namespace Rewinding {
         }
 
         public override void Pause() {
-            if (TryGetComponent<Rigidbody>(out var rigidbody)) {
-                rigidbody.isKinematic = true;
-            }
+            // if (TryGetComponent<Rigidbody>(out var rigidbody)) {
+            //     rigidbody.isKinematic = true;
+            // }
         }
         
         public override void Unpause() {
-            if (TryGetComponent<Rigidbody>(out var rigidbody)) {
-                rigidbody.isKinematic = false;
-            }
+            // if (TryGetComponent<Rigidbody>(out var rigidbody)) {
+            //     rigidbody.isKinematic = false;
+            // }
         }
     }
 }
