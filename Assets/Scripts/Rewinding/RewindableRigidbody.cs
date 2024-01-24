@@ -31,7 +31,6 @@ namespace Rewinding {
         }
         
         public override void Pause() {
-            _wasKinematic = _rigidbody.isKinematic;
             _rigidbody.isKinematic = true;
         }
         

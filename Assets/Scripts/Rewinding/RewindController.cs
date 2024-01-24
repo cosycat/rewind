@@ -75,6 +75,10 @@ namespace Rewinding {
                     break;
                 case RewindMode.Record:
                     FramesToRewindCount++;
+                    foreach (var rewindableObject in _rewindableObjects) {
+                        rewindableObject.SaveFrame();
+                        rewindableObject.DebugCheckFrameCount(FramesToRewindCount, FramesToForwardCount);
+                    }
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -83,51 +87,77 @@ namespace Rewinding {
             return;
 
             void Rewind() {
+                Debug.Log($"RewindController::Rewind: FramesToRewindCount: {FramesToRewindCount}, FramesToForwardCount: {FramesToForwardCount}");
                 FramesToForwardCount += _rewindSpeed;
                 FramesToRewindCount -= _rewindSpeed;
+                
                 if (FramesToRewindCount <= 0) {
-                    FramesToForwardCount -= FramesToRewindCount;
+                    var framesTooMuch = -FramesToRewindCount;
+                    var framesLeft = _rewindSpeed - framesTooMuch;
+                    FramesToForwardCount -= framesTooMuch;
                     FramesToRewindCount = 0;
+                    if (framesLeft > 0) {
+                        foreach (var rewindableObject in _rewindableObjects) {
+                            rewindableObject.RestorePreviousFrame(framesLeft - 1);
+                            rewindableObject.DebugCheckFrameCount(FramesToRewindCount, FramesToForwardCount);
+                        }
+                    }
+
                     Mode = RewindMode.Pause;
-                    // TODO the last frame is not restored
+                    Debug.Log($"RewindController::Rewind: Mode = RewindMode.Pause: FramesToRewindCount: {FramesToRewindCount}, FramesToForwardCount: {FramesToForwardCount}");
                     return;
                 }
                 
                 foreach (var rewindableObject in _rewindableObjects) {
                     rewindableObject.RestorePreviousFrame(_rewindSpeed - 1);
+                    rewindableObject.DebugCheckFrameCount(FramesToRewindCount, FramesToForwardCount);
                 }
                 
             }
 
             void Forward() {
+                Debug.Log($"RewindController::Forward: FramesToRewindCount: {FramesToRewindCount}, FramesToForwardCount: {FramesToForwardCount}");
                 FramesToForwardCount -= _rewindSpeed;
                 FramesToRewindCount += _rewindSpeed;
+                
                 if (FramesToForwardCount <= 0) {
-                    FramesToRewindCount -= FramesToForwardCount;
+                    var framesTooMuch = -FramesToForwardCount;
+                    var framesLeft = _rewindSpeed - framesTooMuch;
+                    FramesToRewindCount -= framesTooMuch;
                     FramesToForwardCount = 0;
+                    if (framesLeft > 0) {
+                        foreach (var rewindableObject in _rewindableObjects) {
+                            rewindableObject.RestoreNextFrame(framesLeft - 1);
+                            rewindableObject.DebugCheckFrameCount(FramesToRewindCount, FramesToForwardCount);
+                        }
+                    }
+                    
                     Mode = RewindMode.Pause;
-                    // TODO the last frame is not restored
+                    Debug.Log($"RewindController::Forward: Mode = RewindMode.Pause: FramesToRewindCount: {FramesToRewindCount}, FramesToForwardCount: {FramesToForwardCount}");
                     return;
                 }
 
                 foreach (var rewindableObject in _rewindableObjects) {
                     rewindableObject.RestoreNextFrame(_rewindSpeed - 1);
+                    rewindableObject.DebugCheckFrameCount(FramesToRewindCount, FramesToForwardCount);
                 }
             }
         }
 
         public void RestartRecording() {
+            Pause();
             Mode = RewindMode.Record;
             FramesToRewindCount = 0;
             FramesToForwardCount = 0;
             foreach (var rewindableObject in _rewindableObjects) {
-                rewindableObject.Pause();
                 rewindableObject.ClearAllFrames();
                 rewindableObject.StartRecording();
             }
         }
 
         public void Pause() {
+            if (IsPaused)
+                return;
             Mode = RewindMode.Pause;
             foreach (var rewindableObject in _rewindableObjects) {
                 rewindableObject.Pause();
@@ -135,23 +165,28 @@ namespace Rewinding {
         }
 
         public void StartRecording() {
+            if (IsRecording)
+                return;
+            Pause();
             Mode = RewindMode.Record;
-            FramesToRewindCount = 0;
+            FramesToForwardCount = 0;
             foreach (var rewindableObject in _rewindableObjects) {
                 rewindableObject.StartRecording();
             }
         }
 
         public void StartRewinding(int rewindSpeed = 3) {
-            if (IsRecording)
-                Pause();
+            if (IsRewinding)
+                return;
+            Pause();
             _rewindSpeed = rewindSpeed;
             Mode = RewindMode.Rewind;
         }
         
         public void StartForwarding() {
-            if (IsRecording)
-                Pause();
+            if (IsForwarding)
+                return;
+            Pause();
             Mode = RewindMode.Forward;
         }
         

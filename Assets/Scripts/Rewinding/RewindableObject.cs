@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace Rewinding {
     public abstract class RewindableObject : MonoBehaviour {
@@ -45,7 +47,16 @@ namespace Rewinding {
         /// Clears all recorded frames.
         /// </summary>
         public abstract void ClearAllFrames();
-        
+
+        /// <summary>
+        /// Saves the state of the object in the current frame.
+        ///
+        /// This method is called automatically every frame while recording, by the <see cref="RewindController"/>.
+        /// </summary>
+        internal abstract void SaveFrame();
+
+        [Conditional("DEBUG")]
+        public abstract void DebugCheckFrameCount(int framesToRewindCount, int framesToForwardCount);
     }
     
     public abstract class RewindableObject<T> : RewindableObject {
@@ -74,13 +85,7 @@ namespace Rewinding {
             _rewindController = RewindController.Register(this);
         }
 
-        protected void Update() {
-            if (IsRecording) {
-                SaveFrame();
-            }
-        }
-
-        private void SaveFrame() {
+        internal override void SaveFrame() {
             Debug.Assert(IsRecording, "Can't save frame while not recording");
             if (_previousFrames.Count > 0 && !IsChangedFromPreviousFrame()) {
                 _previousFrames[^1] = (_previousFrames[^1].equalCount + 1, _previousFrames[^1].frame);
@@ -90,10 +95,10 @@ namespace Rewinding {
         }
         
         public override void StartRecording() {
-            Debug.Assert(IsRecording);
-            if (_previousFrames.Count == 0) {
-                SaveFrame(); // TODO check if this is necessary
-            }
+            // Debug.Assert(IsRecording);
+            // if (_previousFrames.Count == 0) {
+            //     SaveFrame(); // TODO check if this is necessary
+            // }
             _nextFrames.Clear(); // we don't want to be able to redo frames after starting a new recording
             Unpause();
         }
@@ -103,10 +108,12 @@ namespace Rewinding {
         }
 
         public override void RestorePreviousFrame(int skipFrames = 0) {
-            Debug.Log($"Restoring previous frame in {name}, skipFrames: {skipFrames}");
+            // Debug.Log($"Restoring previous frame in {name}, skipFrames: {skipFrames}");
             Debug.Assert(!IsRecording, "Can't restore frame while recording");
-            // Debug.Assert(_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) == _rewindController.FramesToRewindCount, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
+            // Debug.Assert(_previousFrames.All(f => f.equalCount > 0), $"Should never have a frame with equalCount < 1: {string.Join(", ", _previousFrames.Select(f => f.equalCount))}");
+            // Debug.Assert(_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) - (skipFrames + 1) >= _rewindController.FramesToRewindCount, $"Mismatch of frames stored and FramesToRewindCount: {_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) - (skipFrames + 1)} < {_rewindController.FramesToRewindCount} (skipFrames: {skipFrames}"); // TODO this is not very efficient, remove this check if it becomes a problem
             Debug.Assert(skipFrames >= 0, "Can't skip negative number of frames");
+            Debug.Assert(_previousFrames.Count > 0, "Can't restore previous frame if there are no previous frames");
             
             var (equalCount, frame) = _previousFrames[^1];
             while (equalCount <= skipFrames) {
@@ -130,10 +137,12 @@ namespace Rewinding {
         
         // TODO maybe combine this with RestorePreviousFrame
         public override void RestoreNextFrame(int skipFrames = 0) {
-            Debug.Log($"Restoring next frame in {name}, skipFrames: {skipFrames}");
+            // Debug.Log($"Restoring next frame in {name}, skipFrames: {skipFrames}");
             Debug.Assert(!IsRecording, "Can't restore frame while recording");
-            // Debug.Assert(_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount) == _rewindController.FramesToForwardCount, "Can't skip more frames than there are saved"); // TODO this is not very efficient, remove this check if it becomes a problem
+            // Debug.Assert(_nextFrames.All(f => f.equalCount > 0), $"Should never have a frame with equalCount < 1: {string.Join(", ", _nextFrames.Select(f => f.equalCount))}");
+            // Debug.Assert(_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount) - (skipFrames + 1) >= _rewindController.FramesToForwardCount, $"Mismatch of frames stored and FramesToForwardCount: {_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount)} < {_rewindController.FramesToForwardCount}"); // TODO this is not very efficient, remove this check if it becomes a problem
             Debug.Assert(skipFrames >= 0, "Can't skip negative number of frames");
+            Debug.Assert(_nextFrames.Count > 0, "Can't restore next frame if there are no next frames");
             
             var (equalCount, frame) = _nextFrames[^1];
             while (equalCount <= skipFrames) {
@@ -164,6 +173,12 @@ namespace Rewinding {
         protected virtual bool IsChangedFromPreviousFrame() {
             return IsChangedFromFrame(_previousFrames[^1].frame);
         }
-        
+
+        public override void DebugCheckFrameCount(int framesToRewindCount, int framesToForwardCount) {
+            Debug.Assert(_previousFrames.All(f => f.equalCount > 0), $"Should never have a frame with equalCount < 1: {string.Join(", ", _previousFrames.Select(f => f.equalCount))}");
+            Debug.Assert(_nextFrames.All(f => f.equalCount > 0), $"Should never have a frame with equalCount < 1: {string.Join(", ", _nextFrames.Select(f => f.equalCount))}");
+            Debug.Assert(_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount) == framesToRewindCount, $"Mismatch of frames stored and FramesToRewindCount: {_previousFrames.Aggregate(0, (acc, f) => acc + f.equalCount)} != {framesToRewindCount}");
+            Debug.Assert(_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount) == framesToForwardCount, $"Mismatch of frames stored and FramesToForwardCount: {_nextFrames.Aggregate(0, (acc, f) => acc + f.equalCount)} != {framesToForwardCount}");
+        }
     }
 }
